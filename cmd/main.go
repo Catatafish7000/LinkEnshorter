@@ -24,7 +24,7 @@ func main() {
 		repo := cache.NewRepo()
 		handler = handlers.NewHandler(repo)
 	}
-	cron.AddFunc("@every 1s", func() {
+	cron.AddFunc("@daily", func() {
 		handler.Repo.Clear()
 	})
 	cron.Start()

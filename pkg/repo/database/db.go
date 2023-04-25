@@ -67,7 +67,7 @@ func (r *repo) GetURL(hash string) (string, error) {
 
 func (r *repo) Clear() {
 	//current := time.Now()
-	err := r.DB.QueryRow("delete from urls where created_at<(CURRENT_TIMESTAMP - interval '2' second;")
+	_,err := r.DB.Exec("delete from urls where created_at>(CURRENT_TIMESTAMP - interval '1 day';")
 	if err != nil {
 		log.Println(fmt.Sprintf("Failed to clear memory. Error: %v", err))
 	}

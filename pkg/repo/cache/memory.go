@@ -52,7 +52,7 @@ func (r *repo) GetURL(hash string) (string, error) {
 func (r *repo) Clear() {
 	current := time.Now()
 	for i := range r.data {
-		if current.Sub(r.data[i].createdAt) >= time.Second {
+		if current.Sub(r.data[i].createdAt) >= time.Hour*24 {
 			delete(r.data, i)
 		}
 	}
