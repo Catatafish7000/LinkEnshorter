@@ -12,26 +12,24 @@ import (
 	"time"
 )
 
-const Alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_"
-const AlphLen = 63
+
 
 type Handler struct {
-	Repo Repo
+	Service Service
 }
 
-func NewHandler(repo Repo) *Handler {
-	return &Handler{Repo: repo}
+type Service interface {
+	ShowLink(hash string) (string, error)
+	SaveShortURL(url string) (string,error)
+}
+func NewHandler(service Service) *Handler {
+	return &Handler{service}
 }
 
-type Repo interface {
-	GetURL(hash string) (string, error)
-	SaveHashByURL(url string, hash string) error
-	Clear()
-}
 
 func (h *Handler) ShowURL(w http.ResponseWriter, r *http.Request) {
 	hash := mux.Vars(r)["hash"]
-	url, err := h.Repo.GetURL(hash)
+	url, err := h.Service.ShowLink(hash)
 	if err == sql.ErrNoRows || err != nil && err.Error() == "no such hash in cache" {
 		jsonError(w, "No such shorturl registered", http.StatusBadRequest)
 	} else if err != nil {
@@ -51,21 +49,9 @@ func (h *Handler) ShowURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) SaveURL(w http.ResponseWriter, r *http.Request) {
 	url := mux.Vars(r)["url"]
-	rand.Seed(time.Now().UTC().UnixNano())
-	var hash string
-	for {
-		hash = CreateHash()
-		err := h.Repo.SaveHashByURL(url, hash)
-		if err == nil {
-			break
-		}
-		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-			continue
-		} else {
-			log.Println(fmt.Sprintf("Failed to create hash. Error: %v", err))
-			jsonError(w, err.Error(), http.StatusInternalServerError)
-			break
-		}
+	hash,err := h.Service.SaveShortURL(url)
+	if err!=nil{
+		jsonError(w,err.Error(),http.StatusInternalServerError)
 	}
 	resp, err := json.Marshal(map[string]string{
 		"longurl":  url,
@@ -79,13 +65,6 @@ func (h *Handler) SaveURL(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-func CreateHash() string {
-	hash := make([]byte, 10)
-	for i := range hash {
-		hash[i] = Alphabet[rand.Intn(AlphLen)]
-	}
-	return string(hash)
-}
 func jsonError(w http.ResponseWriter, msg string, status int) {
 	resp, _ := json.Marshal(map[string]string{
 		"message": msg,

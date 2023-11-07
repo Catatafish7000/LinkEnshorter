@@ -2,7 +2,7 @@ package main
 
 import (
 	"enshorter/pkg/handlers"
-	"enshorter/pkg/middleware"
+	"LinkEnshorter/pkg/middleware"
 	"enshorter/pkg/repo/cache"
 	"enshorter/pkg/repo/database"
 	"github.com/gorilla/mux"
@@ -11,18 +11,21 @@ import (
 	"net/http"
 )
 
-const usedb = true
 
 func main() {
 	cron := cron.New()
 	var handler *handlers.Handler
 	if usedb {
 		repo := database.NewRepo()
-		handler = handlers.NewHandler(repo)
+		generator:=generator.NewGenerator(Alphabet)
+		service:=service.NewService(repo,generator)
+		handler = handlers.NewHandler(service)
 
 	} else {
 		repo := cache.NewRepo()
-		handler = handlers.NewHandler(repo)
+		generator:=generator.NewGenerator(Alphabet)
+		service:=service.NewService(repo,generator)
+		handler = handlers.NewHandler(service)
 	}
 	cron.AddFunc("@daily", func() {
 		handler.Repo.Clear()
@@ -30,8 +33,8 @@ func main() {
 	cron.Start()
 	r := mux.NewRouter()
 
-	r.HandleFunc("/api/{hash}", handler.ShowURL).Methods(http.MethodGet)
-	r.HandleFunc("/api/{url}", handler.SaveURL).Methods(http.MethodPost)
+	r.HandleFunc("/api/show/{hash}", handler.ShowURL).Methods(http.MethodGet)
+	r.HandleFunc("/api/save/{url}", handler.SaveURL).Methods(http.MethodPost)
 
 	mux := middleware.Panic(r)
 

@@ -1,0 +1,26 @@
+syntax = "proto3";
+package url_shorter;
+option go_package = "/pb";
+import "google/api/annotations.proto";
+
+message Hash {
+  string hash = 1;
+}
+
+message Url {
+  string url = 1;
+}
+
+service UrlShorter {
+  rpc SaveURL(Url) returns (Hash) {
+    option (google.api.http) = {
+      post: "/api/save"
+      body: "*"
+    };
+  }
+  rpc ShowURL(Hash) returns (Url) {
+    option (google.api.http) = {
+      get: "/api/show/{hash}"
+    };
+  }
+}
